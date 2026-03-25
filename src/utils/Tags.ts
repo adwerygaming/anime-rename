@@ -9,6 +9,8 @@ const RawTags = {
   Info: { colors: ['#1ABC9C', '#16A085'] },
   Job: { colors: ['#607D8B', '#455A64'] },
   Database: { colors: ['#336791', '#003B57'] },
+  Jikan: { colors: ['#E74C3C', '#C0392B'] },
+  
 };
 
 type TagConfig = { colors: string[] };
@@ -22,3 +24,9 @@ const tags = Object.fromEntries(
 ) as { [K in keyof RawTagMap]: string };
 
 export default tags;
+
+const beforeGradientColors = ['#E74C3C', '#C0392B'];
+const afterGradientColors = ['#2ECC71', '#27AE60'];
+
+export const beforeGradient = gradient(beforeGradientColors);
+export const afterGradient = gradient(afterGradientColors);

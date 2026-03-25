@@ -1,107 +1,99 @@
 import { input } from '@inquirer/prompts';
 import fs from 'fs/promises';
-import gradient from 'gradient-string';
 
 import { Jikan } from './anire/Jikan.js';
-import tags from "./utils/Tags.js";
+import { CombineResult, FileParseResult, NewAnimeEntry } from './types/AniRe.types.js';
+import { formatEpisode, formatSeason } from './utils/Helper.js';
+import tags, { afterGradient, beforeGradient } from "./utils/Tags.js";
 
 const jikan = new Jikan();
 
-interface ParsedFilename {
-    raw: string;
-    anime: string | null;
-    episodeNumber: number | null;
-    extension: string | null;
-}
-
-interface NewAnimeEntry {
-    title: string;
-    episodeNumber: number | null;
-}
-
-interface CombineResult {
-    raw: string;
-    seriesTitle: string;
-    seasonNumber: number | null;
-    episodeNumber: number | null;
-    episodeTitle: string | null;
-    finalFilename: string;
-    extension: string | null;
-}
-
-const dir = '/mnt/NAS/Media/Devan/Videos/New Folder';
-
-const filenames = await fs.readdir(dir);
-
-console.log(`[${tags.System}] Fetched ${filenames.length} files from SMB share.`);
-
 const allowedExtensions = [".mkv", ".mp4", ".avi"];
+const folderPath = '/mnt/NAS/Harddisk/Download/test';
 
-const parsed: ParsedFilename[] = filenames.map(name => {
-    if (!allowedExtensions.some(ext => name.endsWith(ext))) {
-        return { raw: name, anime: null, episodeNumber: null, extension: null };
+console.log(`[${tags.System}] Folder Path: ${folderPath}`)
+const files = await fs?.readdir(folderPath)
+
+console.log(`[${tags.System}] Fetched ${files.length} files from SMB share.`);
+
+// Files loading
+const parsed: FileParseResult[] = []
+for (const file of files) {
+    if (!allowedExtensions.some(ext => file.endsWith(ext))) {
+        console.log(`[${tags.Warning}] ${file} has an unsupported extension.`);
+        continue
     }
 
-    const match = name.match(/^\[[^\]]+]\s+(.*?)\s+-\s+(\d+(?:v\d+)?)(?=\s|\.)/);
-    if (!match) return { raw: name, anime: null, episodeNumber: null, extension: null };
+    const match = file.match(/^\[[^\]]+]\s+(.*?)\s+-\s+(\d+(?:v\d+)?)(?=\s|\.)/);
+    if (!match) {
+        console.log(`[${tags.Warning}] ${file} does not match the expected naming pattern.`);
+        continue
+    }
 
     // parse file extension
-    const ext = name.match(/\.(mkv|mp4|avi)$/i)?.[1]?.toLowerCase();
+    const ext = file.match(/\.(mkv|mp4|avi)$/i)?.[1]?.toLowerCase();
     if (!ext || !allowedExtensions.includes(`.${ext}`)) {
-        return { raw: name, anime: null, episodeNumber: null, extension: null };
+        console.log(`[${tags.Warning}] ${file} has an invalid file extension.`);
+        continue;
     }
 
     const [, anime, episodeNumber] = match;
-    return { raw: name, anime: anime.trim(), episodeNumber: parseInt(episodeNumber) || null, extension: ext };
-});
+    parsed.push({
+        originalFilename: file,
+        seriesTitle: anime.trim(),
+        episodeNumber: parseInt(episodeNumber ?? 0),
+        fileExtension: ext
+    });
+}
 
-const anilist = new Map<string, ParsedFilename[]>();
+const aniMap = new Map<string, FileParseResult[]>();
 
-for (const { raw, anime, episodeNumber, extension } of parsed) {
-    if (!anime) {
-        console.log(`[${tags.Error}] Failed to resolve ${raw}`)
+// dedupe
+for (const { episodeNumber, fileExtension, originalFilename, seriesTitle } of parsed) {
+    if (!seriesTitle) {
+        console.log(`[${tags.Error}] Failed to resolve ${originalFilename}`)
         continue
     };
 
-    if (!anilist.has(anime)) {
-        anilist.set(anime, []);
+    if (!aniMap.has(seriesTitle)) {
+        aniMap.set(seriesTitle, []);
     }
 
-    anilist.get(anime)?.push({ raw, anime, episodeNumber, extension });
+    aniMap.get(seriesTitle)?.push({ originalFilename, seriesTitle, episodeNumber, fileExtension });
 }
 
-const anientries = Array.from(anilist.entries()).map(([anime, episodes]) => ({ anime, episodes }));
-
-if (anientries.length === 0) {
+// transform 
+const aniEntries = [...aniMap.entries()].map(([anime, episodes]) => ({ anime, episodes }));
+if (aniEntries.length === 0) {
     console.log(`[${tags.Error}] No valid anime entries found in the directory.`);
     process.exit(1);
 }
 
-console.log(`[${tags.System}] Detected ${anientries.length} unique anime titles.\n`);
-
-for (let i = 0; i < anientries.length; i++) {
-    const { anime, episodes } = anientries[i];
+console.log()
+console.log(`[${tags.System}] Found ${aniEntries.length} anime titles.`);
+for (let i = 0; i < aniEntries.length; i++) {
+    const { anime, episodes } = aniEntries[i];
 
     console.log(`[${tags.System}] [${i + 1}] ${anime}   [${episodes.length} eps] `);
-    // console.log(`${episodes.map(e => `  [E${e.episodeNumber}] ${e.raw}`).join("\n")}`);
-    // console.log()
 }
 
+// input 1 - select series
 const seriesSelectionInput = await input({
-    message: "[Select Series] >> ", required: true, validate(value) {
+    message: "[Select Series] >> ", default: "1", validate(value) {
         const index = parseInt(value);
-        if (isNaN(index) || index < 1 || index > anientries.length) {
+        if (isNaN(index) || index < 1 || index > aniEntries.length) {
             return "Please enter a valid number corresponding to the anime series.";
         }
         return true;
     },
 });
-
 const selectedSeriesIndex = parseInt(seriesSelectionInput) - 1;
-const selectedSeries = anientries[selectedSeriesIndex];
+const selectedSeries = aniEntries[selectedSeriesIndex];
 
+// input 2 - select season
+// TODO: Detect season automatically. either using item.length / 12 or idk, bcs usually 1 season has around 12. some are not.
 const animeSeasonSelectionInput = await input({
-    message: "[Enter Season Number (e.g., 1, 2, 3)] >> ", required: true, validate(value) {
+    message: "[Enter Season Number (e.g., 1, 2, 3)] >> ", default: "1", validate(value) {
         const index = parseInt(value);
         if (isNaN(index) || index < 1) {
             return "Please enter a valid number corresponding to the episode.";
@@ -109,35 +101,43 @@ const animeSeasonSelectionInput = await input({
         return true;
     },
 });
-
 const selectedSeason = parseInt(animeSeasonSelectionInput);
 
-console.log(`[${tags.System}] Searching for ${selectedSeries.anime} on MAL...`);
-
+// Fetching anime details from Jikan
+console.log(`[${tags.System}] Searching for ${selectedSeries.anime} on Jikan...`);
 const searchResults = await jikan.search(selectedSeries.anime);
-
 if (searchResults.length === 0) {
-    console.log(`[${tags.Error}] No results found for ${selectedSeries.anime} on MAL.`);
+    console.log(`[${tags.Error}] No results found for ${selectedSeries.anime} on Jikan.`);
     process.exit(1);
 }
 
 const selectedAnimeData = searchResults[0];
-
 if (!selectedAnimeData) {
     console.log(`[${tags.Error}] Invalid selection.`);
     process.exit(1);
 }
 
+// anime details
 const animeDetails = await jikan.fetchById(selectedAnimeData.mal_id ?? 0);
 const animeEpisodes = await jikan.fetchEpisodesById(selectedAnimeData.mal_id ?? 0);
 
-console.log(`[${tags.System}] Anime Details:`);
-console.log(`  Title: ${animeDetails?.title}`);
-console.log(`  Synopsis: ${animeDetails?.synopsis}`);
-console.log(`  Episodes: ${animeDetails?.episodes}`)
-console.log(`  Status: ${animeDetails?.status}`);
+console.log(`[${tags.Jikan}] [Anime Details]`);
+console.log(`[${tags.Jikan}] ${animeDetails?.title}`);
+animeDetails?.synopsis?.split("\n").filter((x): x is string => x.length > 0).map((x) => console.log(`[${tags.Jikan}] ${x}`))
+console.log(`[${tags.Jikan}] MAL ID         : ${animeDetails?.mal_id}`)
+console.log(`[${tags.Jikan}] Episodes       : ${animeDetails?.episodes} Eps`)
+console.log(`[${tags.Jikan}] Status         : ${animeDetails?.status}`);
+console.log(`[${tags.Jikan}] Duration       : ${animeDetails?.duration}`);
+console.log(`[${tags.Jikan}] Rating         : ${animeDetails?.rating}`);
+console.log(`[${tags.Jikan}] Season         : ${animeDetails?.season}`);
+console.log(`[${tags.Jikan}] Year           : ${animeDetails?.year}`);
+console.log(`[${tags.Jikan}] Broadcast Time : ${animeDetails?.broadcast?.string}`);
+console.log(`[${tags.Jikan}] Genres         : ${animeDetails?.genres?.map(s => s.name).join(", ")}`);
+console.log(`[${tags.Jikan}] Studios        : ${animeDetails?.studios?.map(s => s.name).join(", ")}`);
+console.log(`[${tags.Jikan}] Producers      : ${animeDetails?.producers?.map(s => s.name).join(", ")}`);
+console.log(`[${tags.Jikan}] Learn More     : ${animeDetails?.url}`);
 
-console.log(`\n[${tags.System}] Fetched Episode Names:`);
+console.log(`\n[${tags.Jikan}] Fetched Episode Names:`);
 const episodeNames: NewAnimeEntry[] = animeEpisodes?.map((ep, index) => {
     return {
         title: ep.title ?? ep.title_japanese ?? ep.title_romanji ?? `Episode ${index + 1}`,
@@ -146,23 +146,21 @@ const episodeNames: NewAnimeEntry[] = animeEpisodes?.map((ep, index) => {
 }) ?? [];
 
 for (let i = 0; i < episodeNames.length; i++) {
-    const element = episodeNames[i];
-    console.log(`  [E${element.episodeNumber}] ${element.title}`);
-}
+    const eps = episodeNames[i];
 
-console.log(`[${tags.System}] Renaming preview:`)
+    const seasonStr = formatSeason(selectedSeason);
+    const episodeStr = formatEpisode(eps.episodeNumber);
+
+    console.log(`[${tags.Jikan}] -> [${seasonStr}${episodeStr}] ${eps.title}`);
+}
 
 const data = await combine(selectedSeason, selectedSeries.episodes, episodeNames);
 
-const beforeGradientColors = ['#E74C3C', '#C0392B'];
-const afterGradientColors = ['#2ECC71', '#27AE60'];
-
-const beforeGradient = gradient(beforeGradientColors);
-const afterGradient = gradient(afterGradientColors);
-
+console.log()
+console.log(`[${tags.System}] Renaming preview:`)
 for (const item of data) {
-    console.log(beforeGradient(`[-] ${item.raw}`))
-    console.log(afterGradient(`[+] ${item.finalFilename}`))
+    console.log(`[${tags.System}] ${beforeGradient(`[-] ${item.originalFilename}`)}`)
+    console.log(`[${tags.System}] ${afterGradient(`[+] ${item.finalFilename}`)}`)
 }
 
 const renameConfirmSelectionInput = await input({
@@ -179,46 +177,53 @@ const renameConfirmed = renameConfirmSelectionInput.toLowerCase() === 'y';
 
 if (renameConfirmed) {
     console.log(`[${tags.System}] Proceeding with renaming...`);
+    console.log()
+
+    let successCount = 0;
+    let failedCount = 0;
 
     for (const item of data) {
-        const oldPath = `${dir}/${item.raw}`;
-        const newPath = `${dir}/${item.finalFilename}`;
+        const oldPath = `${folderPath}/${item.originalFilename}`;
+        const newPath = `${folderPath}/${item.finalFilename}`;
 
         try {
+            console.log(`[${tags.Job}] Renaming`);
+            console.log(`[${tags.Job}]  -> ${beforeGradient(item.originalFilename)}`);
+            console.log(`[${tags.Job}]  -> ${afterGradient(item.finalFilename)}`);
             await fs.rename(oldPath, newPath);
-            console.log(`[${tags.Job}] Renamed`);
-            console.log(`  From: ${item.raw}`);
-            console.log(`  To: ${item.finalFilename}`);
+            successCount++
         } catch (error) {
-            console.log(`[${tags.Error}] Failed to rename ${item.raw}: ${(error as Error).message}`);
+            console.log(`[${tags.Error}] Failed to rename ${item.originalFilename}: ${(error as Error).message}`);
+            failedCount++
         }
     }
 
-    console.log(`[${tags.System}] Renaming process completed.`);
+    console.log()
+    console.log(`[${tags.System}] Renaming process completed. | Total: ${data.length} | Success: ${successCount} | Failed: ${failedCount}`);
 } else {
     console.log(`[${tags.System}] Rename cancelled.`);
 }
 
-async function combine(seasonNumber: number, existing: ParsedFilename[], latest: NewAnimeEntry[]): Promise<CombineResult[]> {
+async function combine(seasonNumber: number, existing: FileParseResult[], latest: NewAnimeEntry[]): Promise<CombineResult[]> {
     const combined: CombineResult[] = [];
 
     for (const exist of existing) {
         const matched = latest.find(e => e.episodeNumber === exist.episodeNumber);
 
-        const seasonStr = `S${seasonNumber.toString().padStart(2, '0')}`;
-        const episodeStr = `E${exist.episodeNumber?.toString().padStart(2, '0') ?? "??"}`;
+        const seasonStr = formatSeason(seasonNumber);
+        const episodeStr = formatEpisode(exist.episodeNumber);
         const title = matched?.title ?? "Unknown Episode Title"
-        const fileExt = exist.extension ? `.${exist.extension}` : "";
+        const fileExt = exist.fileExtension ? `.${exist.fileExtension}` : "";
 
-        const finalFilename = `${exist.anime} - ${seasonStr}${episodeStr} - ${title}${fileExt}`;
+        const finalFilename = `${exist.seriesTitle} - ${seasonStr}${episodeStr} - ${title}${fileExt}`;
 
         combined.push({
-            raw: exist.raw,
-            seriesTitle: exist.anime ?? "Unknown Series",
-            seasonNumber,
+            originalFilename: exist.originalFilename,
+            seriesTitle: exist.seriesTitle,
             episodeNumber: exist.episodeNumber,
-            episodeTitle: matched?.title ?? null,
-            extension: exist.extension,
+            fileExtension: exist.fileExtension,
+            episodeTitle: title,
+            seasonNumber,
             finalFilename
         });
     }
