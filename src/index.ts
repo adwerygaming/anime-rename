@@ -13,9 +13,7 @@ const jikan = new Jikan();
 const allowedExtensions = [".mkv", ".mp4", ".avi"];
 
 console.log(`[${tags.System}] Please enter the folder path containing your anime files. Supported formats: ${allowedExtensions.join(", ")}`);
-const folderPath = await input({
-    message: "[Enter Folder Path] >> ", required: true
-});
+const folderPath = await input({ message: "[Folder Path] >> ", required: true });
 
 if (!fs.existsSync(folderPath)) {
     console.log(`[${tags.Error}] Folder path does not exist: ${folderPath}`);
@@ -28,7 +26,15 @@ async function start(): Promise<void> {
 
         console.log(`[${tags.System}] Folder Path: ${folderPath}`);
         console.log(`[${tags.System}] Reading files...`);
-        const files = fs.readdirSync(folderPath, { withFileTypes: true }) ?? [];
+        const files = fs.readdirSync(folderPath, { withFileTypes: true });
+
+        if (files.length === 0) {
+            console.log(`[${tags.Warning}] No files found in the directory.`);
+            await input({
+                message: "Enter anything to refresh."
+            });
+            continue;
+        }
 
         console.log(`[${tags.System}] Found ${files.length} files.`);
         console.log();
@@ -82,6 +88,15 @@ async function start(): Promise<void> {
         const aniMap = new Map<string, FileParseResult[]>();
 
         // dedupe
+        console.log();
+        if (parsed.length === 0) {
+            console.log(`[${tags.Error}] No files found in the folder.`);
+            await input({
+                message: "Enter anything to refresh."
+            });
+            continue;
+        }
+
         for (const { episodeNumber, fileExtension, originalFilename, seriesTitle } of parsed) {
             if (!seriesTitle) {
                 console.log(`[${tags.Error}] Failed to resolve "${originalFilename}"`);
@@ -102,7 +117,6 @@ async function start(): Promise<void> {
             continue;
         }
 
-        console.log();
         console.log(`[${tags.System}] Found ${aniEntries.length} anime titles.`);
 
         // input 1 - select series
