@@ -10,7 +10,7 @@ export function formatEpisode(episodeNumber: number | null): string {
     return `E${episodeNumber.toString().padStart(2, '0')}`;
 }
 
-export async function combine(seasonNumber: number, existing: FileParseResult[], latest: NewAnimeEntry[]): Promise<CombineResult[]> {
+export function combine(seasonNumber: number, existing: FileParseResult[], latest: NewAnimeEntry[]): CombineResult[] {
     const combined: CombineResult[] = [];
 
     for (const exist of existing) {

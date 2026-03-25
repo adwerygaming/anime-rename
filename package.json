@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon",
+    "dev": "nodemon --no-stdin",
     "start": "npx tsx ./src/index.ts",
     "lint": "eslint .",
     "build": "tsup"
