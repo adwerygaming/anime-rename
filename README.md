@@ -1,6 +1,6 @@
 <div align="center">
  <h1>Anime Renamer</h1>
- <p>One-shot CLI to clean and Jellyfin-ify your anime library</p>
+ <p>A simple CLI to rename anime files for Jellyfin format</p>
 </div>
 
 # Features
@@ -64,5 +64,7 @@ npm start
 > [!IMPORTANT]
 > **Expected structure:** All files that are in the pointed folder should only contain 1 season per series.
 > <br>
+> <br>
 > **What will works**: 2 Different series, but all of them is Season 1
+> <br>
 > **What won't works**: 2 Different series, one is Season 1 and the other is Season 2
