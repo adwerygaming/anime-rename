@@ -9,28 +9,41 @@ interface FetchEpisodesResult {
 
 export class Jikan {
     async search(query: string): Promise<Anime[]> {
-        const res = await getAnimeSearch({ q: query, limit: 5 })
+        try {
+            const res = await getAnimeSearch({ q: query, limit: 5 });
 
-        return res.data ?? []
+            return res.data ?? [];
+        } catch (e) {
+            throw new Error(`Failed to search for anime with query "${query}"`, { cause: e });
+        }
     }
 
     async fetchById(id: number): Promise<Anime | null> {
-        const res = await getAnimeById(id)
+        try {
+            const res = await getAnimeById(id);
 
-        return res.data ?? null
+            return res.data ?? null;
+        } catch (e) {
+            throw new Error(`Failed to fetch anime with ID "${id}"`, { cause: e });
+        }
     }
 
-    async fetchEpisodesById(id: number): Promise<FetchEpisodesResult[] | undefined> {
-        const res = await getAnimeEpisodes(id)
+    async fetchEpisodesById(id: number): Promise<FetchEpisodesResult[]> {
+        try {
+            const res = await getAnimeEpisodes(id);
 
-        const episodes = res.data?.map((ep) => {
-            return {
-                title: ep.title,
-                title_japanese: ep.title_japanese,
-                title_romanji: ep.title_romanji
-            }
-        })
+            const episodes = res.data?.map((ep) => {
+                return {
+                    title: ep.title,
+                    title_japanese: ep.title_japanese,
+                    title_romanji: ep.title_romanji
+                };
+            });
 
-        return episodes
+            return episodes ?? [];
+        } catch (e) {
+            throw new Error(`Failed to fetch episodes for anime with ID "${id}"`, { cause: e });
+        }
+
     }
 }
