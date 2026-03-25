@@ -12,9 +12,10 @@ const allowedExtensions = [".mkv", ".mp4", ".avi"];
 const folderPath = '/mnt/NAS/Harddisk/Download/test';
 
 console.log(`[${tags.System}] Folder Path: ${folderPath}`)
+console.log(`[${tags.System}] Reading files...`)
 const files = await fs?.readdir(folderPath)
 
-console.log(`[${tags.System}] Fetched ${files.length} files from SMB share.`);
+console.log(`[${tags.System}] Fetched ${files.length} files.`);
 
 // Files loading
 const parsed: FileParseResult[] = []
