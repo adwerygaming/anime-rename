@@ -2,6 +2,7 @@ import { confirm, input, select } from '@inquirer/prompts';
 import fs from 'fs';
 import { rename } from 'fs/promises';
 
+import path from 'path';
 import { Jikan } from './anire/Jikan.js';
 import { FileParseResult, NewAnimeEntry } from './types/AniRe.types.js';
 import { combine, formatEpisode, formatSeason } from './utils/Helper.js';
@@ -99,16 +100,10 @@ async function start(): Promise<void> {
         if (aniEntries.length === 0) {
             console.log(`[${tags.Error}] No valid anime entries found in the directory.`);
             continue;
-            return;
         }
 
         console.log();
         console.log(`[${tags.System}] Found ${aniEntries.length} anime titles.`);
-        // for (let i = 0; i < aniEntries.length; i++) {
-        //     const { anime, episodes } = aniEntries[i];
-
-        //     console.log(`[${tags.System}] [${i + 1}] ${anime}   [${episodes.length} eps] `);
-        // }
 
         // input 1 - select series
         const seriesChoices = aniEntries.map((entry, index) => {
@@ -145,21 +140,18 @@ async function start(): Promise<void> {
             if (searchResults.length === 0) {
                 console.log(`[${tags.Error}] No results found for ${selectedSeries.anime} on Jikan.`);
                 continue;
-                return;
             }
 
             const selectedAnimeData = searchResults[0];
             if (!selectedAnimeData) {
                 console.log(`[${tags.Error}] Invalid selection.`);
                 continue;
-                return;
             }
 
             const malId = selectedAnimeData?.mal_id;
             if (!malId) {
                 console.log(`[${tags.Error}] Selected anime does not have a valid MAL ID.`);
                 continue;
-                return;
             }
 
             // anime details
@@ -186,16 +178,16 @@ async function start(): Promise<void> {
             console.log(`[${tags.Jikan}] Producers      : ${animeDetails?.producers?.map(s => s.name).join(", ")}`);
             console.log(`[${tags.Jikan}] Learn More     : ${animeDetails?.url}`);
 
-            console.log(`\n[${tags.Jikan}] Fetched Episode Names:`);
-            const episodeNames: NewAnimeEntry[] = animeEpisodes?.map((ep, index) => {
+            const jikanEntries: NewAnimeEntry[] = animeEpisodes?.map((ep, index) => {
                 return {
                     title: ep.title ?? ep.title_japanese ?? ep.title_romanji ?? `Episode ${index + 1}`,
                     episodeNumber: index + 1
                 };
             }) ?? [];
 
-            for (let i = 0; i < episodeNames.length; i++) {
-                const eps = episodeNames[i];
+            console.log(`\n[${tags.Jikan}] Fetched Episode Names:`);
+            for (let i = 0; i < jikanEntries.length; i++) {
+                const eps = jikanEntries[i];
 
                 const seasonStr = formatSeason(selectedSeason);
                 const episodeStr = formatEpisode(eps.episodeNumber);
@@ -203,7 +195,11 @@ async function start(): Promise<void> {
                 console.log(`[${tags.Jikan}] -> [${seasonStr}${episodeStr}] ${eps.title}`);
             }
 
-            const data = combine(selectedSeason, selectedSeries.episodes, episodeNames);
+            const data = combine({
+                seasonNumber: selectedSeason,
+                localEntries: selectedSeries.episodes,
+                jikanEntries
+            });
 
             console.log();
             console.log(`[${tags.System}] Renaming preview:`);
@@ -212,10 +208,9 @@ async function start(): Promise<void> {
                 console.log(`[${tags.System}] ${afterGradient(`[+] ${item.finalFilename}`)}`);
             }
 
-            const renameConfirmSelectionInput = await confirm({ message: "Do you want to proceed with renaming?", default: false });
-            const renameConfirmed = renameConfirmSelectionInput;
+            const renameConfirm = await confirm({ message: "Do you want to proceed with renaming?", default: false });
 
-            if (renameConfirmed) {
+            if (renameConfirm) {
                 console.log(`[${tags.System}] Proceeding with renaming...`);
                 console.log();
 
@@ -223,8 +218,8 @@ async function start(): Promise<void> {
                 let failedCount = 0;
 
                 for (const item of data) {
-                    const oldPath = `${folderPath}/${item.originalFilename}`;
-                    const newPath = `${folderPath}/${item.finalFilename}`;
+                    const oldPath = path.join(folderPath, item.originalFilename);
+                    const newPath = path.join(folderPath, item.finalFilename);
 
                     try {
                         console.log(`[${tags.Job}] Renaming`);
@@ -262,7 +257,7 @@ async function start(): Promise<void> {
             console.error(e);
 
             if (e instanceof Error) {
-                if (e.message.includes("ExitPromptError")) return;
+                if (e.name.includes("ExitPromptError")) return;
             }
 
             await input({

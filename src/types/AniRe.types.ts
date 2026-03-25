@@ -15,3 +15,9 @@ export interface CombineResult extends FileParseResult {
     episodeTitle: string | null;
     finalFilename: string;
 }
+
+export interface CombineProp {
+    seasonNumber: number;
+    localEntries: FileParseResult[];
+    jikanEntries: NewAnimeEntry[];
+}
