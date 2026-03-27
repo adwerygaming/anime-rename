@@ -4,11 +4,13 @@
 </div>
 
 # Features
+
 - Rename into Jellyfin format: `{Anime Title} - SXXEXX - {Episode Title}.{Ext}`
 - Pull episode titles per file straight from Jikan
 - Guided CLI: pick the folder, review, confirm, done
 
 # Example
+
 Before:
 ```
 - [SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 01 (1080p).mkv
@@ -24,9 +26,11 @@ After:
 ```
 
 # Prerequisites
+
 - Node.js (version 21 or higher)
 
 # Installation
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/adwerygaming/anime-rename.git
@@ -43,6 +47,7 @@ npm install
 ```
 
 # Usage
+
 1. Run the script:
 ```bash
 npm start
@@ -54,7 +59,7 @@ npm start
 5. When prompted, type "y" to rename or "n" to abort.
 
 > [!IMPORTANT]
-> **Expected input:** `[GroupName] {Anime Title} - SXXEXX - {Episode Title}.{ext}`. Files outside this shape are skipped with a warning.
+> **Expected input:** `[GroupName] {Anime Title} - XX - {Episode Title}.{ext}`. Where `XX` is the episode number. Files outside this shape are skipped with a warning.
 > <br>
 > Examples:
 > - `[SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 01 (1080p) [CC3FE38D].mkv`
