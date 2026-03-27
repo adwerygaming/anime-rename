@@ -1,19 +1,19 @@
 <div align="center">
  <h1>Anime Renamer</h1>
- <p>A simple CLI to rename anime files for Jellyfin format</p>
+ <p>A simple CLI to batch rename anime files into Jellyfin format</p>
 </div>
 
 # Features
-- Rename into Jellyfin-ready names: `{Anime Title} - SXXEXX - {Episode Title}.{Ext}`
-- Pull episode titles straight from Jikan
+- Rename into Jellyfin format: `{Anime Title} - SXXEXX - {Episode Title}.{Ext}`
+- Pull episode titles per file straight from Jikan
 - Guided CLI: pick the folder, review, confirm, done
 
 # Example
 Before:
 ```
-- [SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 01 (1080p) [CC3FE38D].mkv
-- [SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 02 (1080p) [71886F23].mkv
-- [SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 03 (1080p) [C1EAF12F].mkv
+- [SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 01 (1080p).mkv
+- [SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 02 (1080p).mkv
+- [SubsPlease] Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita. - 03 (1080p).mkv
 ```
 
 After:
@@ -65,6 +65,6 @@ npm start
 > **Expected structure:** All files that are in the pointed folder should only contain 1 season per series.
 > <br>
 > <br>
-> **What will works**: 2 Different series, but all of them is Season 1
+> **What works:** 1 series with season 1 only in the same folder, combined, mixed without any folder separation.
 > <br>
-> **What won't works**: 2 Different series, one is Season 1 and the other is Season 2
+> **What won’t work:** 1 series with season 1 & 2 in the same folder, combined, mixed without any folder separation.
