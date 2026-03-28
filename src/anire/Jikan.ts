@@ -2,12 +2,17 @@ import { getAnimeById, getAnimeEpisodes, getAnimeSearch } from "@lightweight-cli
 import { Anime } from "@lightweight-clients/jikan-api-lightweight-client/dist/raw-types.js";
 
 interface FetchEpisodesResult {
-    title: string | undefined | null;
-    title_japanese: string | undefined | null;
-    title_romanji: string | undefined | null;
+    title: string | null;
+    title_japanese: string | null;
+    title_romanji: string | null;
 }
 
 export class Jikan {
+    /**
+     * Search anime details from a query.
+     * @param query String of anime series title
+     * @returns Array of Jikan `Anime` object
+     */
     async search(query: string): Promise<Anime[]> {
         try {
             const res = await getAnimeSearch({ q: query, limit: 5 });
@@ -18,6 +23,11 @@ export class Jikan {
         }
     }
 
+    /**
+     * Fetches anime details from MAL ID
+     * @param id Anime Series MAL ID
+     * @returns Jikan `Anime` object.
+     */
     async fetchById(id: number): Promise<Anime | null> {
         try {
             const res = await getAnimeById(id);
@@ -28,15 +38,20 @@ export class Jikan {
         }
     }
 
+    /**
+     * Fetches episodes details from an anime series
+     * @param id Anime Series MAL ID
+     * @returns Array of `FetchEpisodesResult` object. Containing `title`, `title_japanese`, `title_romanji`.
+     */
     async fetchEpisodesById(id: number): Promise<FetchEpisodesResult[]> {
         try {
             const res = await getAnimeEpisodes(id);
 
             const episodes = res.data?.map((ep) => {
                 return {
-                    title: ep.title,
-                    title_japanese: ep.title_japanese,
-                    title_romanji: ep.title_romanji
+                    title: ep?.title ?? null,
+                    title_japanese: ep?.title_japanese  ?? null,
+                    title_romanji: ep?.title_romanji  ?? null,
                 };
             });
 
@@ -44,6 +59,5 @@ export class Jikan {
         } catch (e) {
             throw new Error(`Failed to fetch episodes for anime with ID "${id}"`, { cause: e });
         }
-
     }
 }

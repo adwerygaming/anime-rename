@@ -1,15 +1,30 @@
 import { CombineProp, CombineResult } from "../types/AniRe.types.js";
 
+/**
+ * Formats season number into string format with leading zeros.
+ * @param seasonNumber 
+ * @returns 
+ */
 export function formatSeason(seasonNumber: number | null): string {
     if (seasonNumber === null) return "S??";
     return `S${seasonNumber.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Formats episode number into string format with leading zeros.
+ * @param episodeNumber 
+ * @returns 
+ */
 export function formatEpisode(episodeNumber: number | null): string {
     if (episodeNumber === null) return "E??";
     return `E${episodeNumber.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Combines local file entries with Jikan episode data to create a list of combined results with formatted filenames.
+ * @param CombineProp - An object containing the season number, local file entries, and Jikan episode entries.
+ * @returns CombineResult[]
+ */
 export function combine({ seasonNumber, localEntries, jikanEntries }: CombineProp): CombineResult[] {
     const combined: CombineResult[] = [];
 
