@@ -24,7 +24,7 @@ if (!fs.existsSync(directoryPath)) {
 
 /**
  * Main function
- * @returns Promise void
+ * @returns {Promise<void>} Promise that resolves when the function completes
  */
 async function start(): Promise<void> {
     while (true) {
@@ -287,11 +287,11 @@ async function start(): Promise<void> {
 await start();
 
 process.on('uncaughtException', (error) => {
-  if (error instanceof Error && error.name === 'ExitPromptError') {
-    // nothing...
-    return;
-  } else {
-    // Rethrow unknown errors
-    throw error;
-  }
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+        // nothing...
+        return;
+    } else {
+        // Rethrow unknown errors
+        throw error;
+    }
 });
