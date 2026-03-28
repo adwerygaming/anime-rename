@@ -12,21 +12,26 @@ const jikan = new Jikan();
 
 const allowedExtensions = [".mkv", ".mp4", ".avi"];
 
-console.log(`[${tags.System}] Please enter the folder path containing your anime files. Supported formats: ${allowedExtensions.join(", ")}`);
-const folderPath = await input({ message: "[Folder Path] >> ", required: true });
+console.log(`[${tags.System}] Please enter the directory path containing your anime files. Supported formats: ${allowedExtensions.join(", ")}`);
+const directoryPathInput = await input({ message: "[Folder Path] >> ", required: true });
+const directoryPath = `${directoryPathInput.trim()}`;
 
-if (!fs.existsSync(folderPath)) {
-    console.log(`[${tags.Error}] Folder path does not exist: ${folderPath}`);
+if (!fs.existsSync(directoryPath)) {
+    console.log(`[${tags.Error}] Cannot find directory: ${directoryPath}`);
+    console.log(`[${tags.Error}] Make sure the path is correct & exists then try again.`);
     process.exit(1);
 }
 
+/**
+ * Main function
+ * @returns Promise void
+ */
 async function start(): Promise<void> {
     while (true) {
         console.clear();
 
-        console.log(`[${tags.System}] Folder Path: ${folderPath}`);
-        console.log(`[${tags.System}] Reading files...`);
-        const files = fs.readdirSync(folderPath, { withFileTypes: true });
+        console.log(`[${tags.System}] Folder Path: ${directoryPath}`);
+        const files = fs.readdirSync(directoryPath, { withFileTypes: true });
 
         if (files.length === 0) {
             console.log(`[${tags.Warning}] No files found in the directory.`);
@@ -89,14 +94,6 @@ async function start(): Promise<void> {
 
         // dedupe
         console.log();
-        if (parsed.length === 0) {
-            console.log(`[${tags.Error}] No files found in the folder.`);
-            await input({
-                message: "Enter anything to refresh."
-            });
-            continue;
-        }
-
         for (const { episodeNumber, fileExtension, originalFilename, seriesTitle } of parsed) {
             if (!seriesTitle) {
                 console.log(`[${tags.Error}] Failed to resolve "${originalFilename}"`);
@@ -172,25 +169,29 @@ async function start(): Promise<void> {
             const animeDetails = await jikan.fetchById(malId);
             const animeEpisodes = await jikan.fetchEpisodesById(malId);
 
+            const genres = animeDetails?.genres ?? [];
+            const studios = animeDetails?.studios ?? [];
+            const producers = animeDetails?.producers ?? [];
+
             console.clear();
 
             console.log(`[${tags.Jikan}] [Anime Details]`);
             console.log("");
-            console.log(`[${tags.Jikan}] ${animeDetails?.title}`);
+            console.log(`[${tags.Jikan}] ${animeDetails?.title ?? "<No title>"}`);
             animeDetails?.synopsis?.split("\n").filter((x): x is string => x.length > 0).map((x) => console.log(`[${tags.Jikan}] ${x}`));
             console.log("");
-            console.log(`[${tags.Jikan}] MAL ID         : ${animeDetails?.mal_id}`);
-            console.log(`[${tags.Jikan}] Episodes       : ${animeDetails?.episodes} Eps`);
-            console.log(`[${tags.Jikan}] Status         : ${animeDetails?.status}`);
-            console.log(`[${tags.Jikan}] Duration       : ${animeDetails?.duration}`);
-            console.log(`[${tags.Jikan}] Rating         : ${animeDetails?.rating}`);
-            console.log(`[${tags.Jikan}] Season         : ${animeDetails?.season}`);
-            console.log(`[${tags.Jikan}] Year           : ${animeDetails?.year}`);
-            console.log(`[${tags.Jikan}] Broadcast Time : ${animeDetails?.broadcast?.string}`);
-            console.log(`[${tags.Jikan}] Genres         : ${animeDetails?.genres?.map(s => s.name).join(", ")}`);
-            console.log(`[${tags.Jikan}] Studios        : ${animeDetails?.studios?.map(s => s.name).join(", ")}`);
-            console.log(`[${tags.Jikan}] Producers      : ${animeDetails?.producers?.map(s => s.name).join(", ")}`);
-            console.log(`[${tags.Jikan}] Learn More     : ${animeDetails?.url}`);
+            console.log(`[${tags.Jikan}] MAL ID         : ${animeDetails?.mal_id ?? "-"}`);
+            console.log(`[${tags.Jikan}] Episodes       : ${animeDetails?.episodes ?? "-"} Eps`);
+            console.log(`[${tags.Jikan}] Status         : ${animeDetails?.status ?? "-"}`);
+            console.log(`[${tags.Jikan}] Duration       : ${animeDetails?.duration ?? "-"}`);
+            console.log(`[${tags.Jikan}] Rating         : ${animeDetails?.rating ?? "-"}`);
+            console.log(`[${tags.Jikan}] Season         : ${animeDetails?.season ?? "-"}`);
+            console.log(`[${tags.Jikan}] Year           : ${animeDetails?.year ?? "-"}`);
+            console.log(`[${tags.Jikan}] Broadcast Time : ${animeDetails?.broadcast?.string ?? "-"}`);
+            console.log(`[${tags.Jikan}] Genres         : ${genres.length > 0 ? genres?.map(s => s.name).join(", ") : "-"}`);
+            console.log(`[${tags.Jikan}] Studios        : ${studios.length > 0 ? studios?.map(s => s.name).join(", ") : "-"}`);
+            console.log(`[${tags.Jikan}] Producers      : ${producers.length > 0 ? producers?.map(s => s.name).join(", ") : "-"}`);
+            console.log(`[${tags.Jikan}] Learn More     : ${animeDetails?.url ?? "-"}`);
 
             const jikanEntries: NewAnimeEntry[] = animeEpisodes?.map((ep, index) => {
                 return {
@@ -232,8 +233,8 @@ async function start(): Promise<void> {
                 let failedCount = 0;
 
                 for (const item of data) {
-                    const oldPath = path.join(folderPath, item.originalFilename);
-                    const newPath = path.join(folderPath, item.finalFilename);
+                    const oldPath = path.join(directoryPath, item.originalFilename);
+                    const newPath = path.join(directoryPath, item.finalFilename);
 
                     try {
                         console.log(`[${tags.Job}] Renaming`);
