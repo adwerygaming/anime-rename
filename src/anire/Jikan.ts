@@ -50,8 +50,8 @@ export class Jikan {
             const episodes = res.data?.map((ep) => {
                 return {
                     title: ep?.title ?? null,
-                    title_japanese: ep?.title_japanese  ?? null,
-                    title_romanji: ep?.title_romanji  ?? null,
+                    title_japanese: ep?.title_japanese ?? null,
+                    title_romanji: ep?.title_romanji ?? null,
                 };
             });
 
