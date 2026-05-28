@@ -17,10 +17,12 @@
     "node": ">=21"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.3.5",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
     "concurrently": "^9.2.1",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.2",
     "jiti": "^2.6.1",
     "nodemon": "^3.1.14",
@@ -32,8 +34,12 @@
   "dependencies": {
     "@inquirer/prompts": "^8.3.2",
     "@lightweight-clients/jikan-api-lightweight-client": "^4.0.2",
+    "axios": "^1.16.1",
+    "better-sqlite3": "^12.10.0",
     "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.2",
     "gradient-string": "^3.0.0",
+    "quick.db": "^9.1.7",
     "zod": "^4.3.6"
   }
 }

@@ -29,3 +29,4 @@ const afterGradientColors = ['#2ECC71', '#27AE60'];
 
 export const beforeGradient = gradient(beforeGradientColors);
 export const afterGradient = gradient(afterGradientColors);
+export const staleGradient = gradient(['#95A5A6', '#7F8C8D']);
