@@ -1,28 +1,28 @@
-import db from "../database/Client.js";
-import tags from "../utils/Tags.js";
+import db from "../../database/Client.js";
+import tags from "../../utils/Tags.js";
 
-export interface DirectoryDBSchema {
+export interface DirectorySchema {
     created_at: Date
     last_access_at: Date | null
     path: string
 }
 
-export class DirectoryDB {
+export class DirectoryService {
     private readonly prefix = "directories";
 
-    async getAll(): Promise<DirectoryDBSchema[]> {
-        const directories: DirectoryDBSchema[] = await db.get(this.prefix) || [];
+    async getAll(): Promise<DirectorySchema[]> {
+        const directories: DirectorySchema[] = await db.get(this.prefix) || [];
         return directories;
     }
 
-    async getByPath(path: string): Promise<DirectoryDBSchema | null> {
+    async getByPath(path: string): Promise<DirectorySchema | null> {
         const directories = await this.getAll();
 
         const found = directories.find((x) => x.path == path) ?? null;
         return found;
     }
 
-    async add(path: string): Promise<DirectoryDBSchema> {
+    async add(path: string): Promise<DirectorySchema> {
         try {
             const directory = await this.getByPath(path);
             if (directory) {
@@ -31,7 +31,7 @@ export class DirectoryDB {
             
             console.log(`[${tags.Database}] Path "${path}" is not on db. Adding.`);
 
-            const entry: DirectoryDBSchema = {
+            const entry: DirectorySchema = {
                 created_at: new Date(),
                 last_access_at: null,
                 path
@@ -45,7 +45,7 @@ export class DirectoryDB {
         }
     }
 
-    async remove(path: string): Promise<DirectoryDBSchema | null> {
+    async remove(path: string): Promise<DirectorySchema | null> {
         try {
             const directory = await this.getByPath(path);
             if (!directory) {
