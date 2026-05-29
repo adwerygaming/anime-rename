@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-escape */
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 
+import { z } from 'zod';
 import { ParsedAnime, readSeries } from './services/Anime.js';
 import { applyRenames } from './services/Changes.js';
 import { DirectorySchema, DirectoryService } from './services/database/Directory.js';
@@ -19,6 +20,8 @@ export interface SelectSeriesResult {
     episodes: ParsedAnime[];
 }
 
+// if you update this result schema
+// make sure to also update the system prompt in src/assets/systemPrompt.txt accordingly
 export interface ProposedRenameResult {
     series: SelectSeriesResult;
     old: {
@@ -30,6 +33,21 @@ export interface ProposedRenameResult {
         name: string;
     };
 }
+
+const ProposedRenameResultSchema = z.object({
+  old: z.object({
+    path: z.string(),
+    name: z.string(),
+  }),
+  new: z.object({
+    path: z.string(),
+    name: z.string(),
+  }),
+});
+
+export const RenameResponseSchema = z.object({
+  results: z.array(ProposedRenameResultSchema).describe("The array containing the mappings of old filenames to new filenames."),
+});
 
 export interface ApplyRenamesResult {
     success: number;
@@ -43,7 +61,6 @@ export interface ApplyRenamesResult {
         minutes: string;
     }
 }
-
 
 async function promptAddDirectory(): Promise<DirectorySchema> {
     console.log(`[${tags.Info}] Enter 'exit' to cancel adding new path.`);
@@ -240,7 +257,7 @@ let activeDirectory = await promptDirectory();
 
 while (true) {
     try {
-        console.clear();
+        // console.clear();
         console.log(`[${tags.Info}] Directory: ${activeDirectory.path}`);
 
         const selectedSeries = await promptSelectSeries(activeDirectory);
@@ -272,8 +289,6 @@ while (true) {
         if (confirmResult) {
             console.log(`[${tags.Job}] Renaming completed successfully.`);
             console.log(`[${tags.Job}] Success: ${confirmResult.success}, Failed: ${confirmResult.failed}, Total: ${confirmResult.total}, Elapsed Time: ${confirmResult.elapsed.seconds} seconds.`);
-        } else {
-            console.log(`[${tags.Job}] Renaming cancelled. Returning to series selection.`);
         }
         
         await confirm({

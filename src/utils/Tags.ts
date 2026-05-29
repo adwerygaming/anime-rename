@@ -10,6 +10,7 @@ const RawTags = {
   Job: { colors: ['#607D8B', '#455A64'] },
   Database: { colors: ['#336791', '#003B57'] },
   Jikan: { colors: ['#E74C3C', '#C0392B'] },
+  AI: { colors: ['#345de3', '#6c89fd'] },
 };
 
 type TagConfig = { colors: string[] };

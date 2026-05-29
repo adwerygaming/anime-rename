@@ -3,13 +3,19 @@ import { getAnimeSearch } from "@lightweight-clients/jikan-api-lightweight-clien
 import { Anime } from "@lightweight-clients/jikan-api-lightweight-client/dist/raw-types.js";
 import path from "node:path";
 
-import { ProposedRenameResult, SelectSeriesResult } from "../index.js";
+import fs from 'node:fs';
+import { OpenAI } from "openai";
+import { z } from "zod";
+import { ProposedRenameResult, RenameResponseSchema, SelectSeriesResult } from "../index.js";
+import { env } from "../utils/EnvManager.js";
 import tags, { afterGradient, staleGradient } from "../utils/Tags.js";
 import { JikanCacheService } from "./database/JikanCache.js";
 import { JikanWrapper } from "./JikanWrapper.js";
 
 const jikanCache = new JikanCacheService();
 const jikanWrapper = new JikanWrapper();
+
+const systemPromptPath = path.join(process.cwd(), "src", "assets", "systemPrompt.txt");
 
 export class RenamingService {
     private readonly series: SelectSeriesResult;
@@ -18,6 +24,7 @@ export class RenamingService {
         this.series = series;
     }
 
+    // used by useJikan()
     private async promptSearchSeries(): Promise<Anime | null> {
         const searchResults = await getAnimeSearch({ q: this.series.name, limit: 15 });
         const data = searchResults.data ?? [];
@@ -114,7 +121,7 @@ export class RenamingService {
 
             processedFiles.add(matchedLocalFile.originalFile.name);
 
-            console.log(`[${tags.Jikan}] [E${jikanEpNumber}] ${afterGradient(`${jikanEp.title} -> ${matchedLocalFile.originalFile.name}`)}`);
+            console.log(`[${tags.Jikan}] [E${jikanEpNumber}] ${afterGradient(`${jikanEp.title}`)} -> ${afterGradient(`${matchedLocalFile.originalFile.name}`)}`);
 
             const episodeFormatted = matchedLocalFile.episode.toString().padStart(2, '0');
             const seasonFormatted = matchedLocalFile.season.toString().padStart(2, '0');
@@ -162,9 +169,63 @@ export class RenamingService {
         return proposedRenames;
     }
 
+    // used by useAI()
+    async loadAISystemPrompt(): Promise<string> {
+        return fs.readFileSync(systemPromptPath, 'utf-8');
+    }
+
     async useAI(): Promise<ProposedRenameResult[] | null> {
-        console.clear();
-        console.log("AI method selected. This is currently not implemented.");
+        console.log(`[${tags.Warning}] Renaming using AI. Output might not be perfect, use another method if the results are not satisfied.`);
+        console.log(`[${tags.AI}] Generating renames using OpenAI. Please wait.`);
+        console.log(`[${tags.Info}] If it's failing, you could try again. Each request to AI is a bit different and might produce better results on another try.`);
+
+        const openai = new OpenAI({
+            baseURL: env.OPENAI_BASE_URL,
+            apiKey: env.OPENAI_API_KEY
+        });
+
+        const currentPath = this.series.episodes[0]?.originalFile.path ?? "N/A";
+        const rawFilenames = this.series.episodes.map((x) => `${x.originalFile.name}`);
+        const targetFormat = "{Anime Title} - S{SeasonNumber}E{EpisodeNumber} - {Episode Name}.{File Ext}";
+
+        const systemPrompt = await this.loadAISystemPrompt();
+        const userPrompt = `Target Naming Format: ${targetFormat}\nCurrent Path: ${currentPath}\nRaw Filenames: ${JSON.stringify(rawFilenames)}`;
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: 'auto',
+                messages: [
+                    {
+                        role: 'system',
+                        content: systemPrompt,
+                    },
+                    {
+                        role: 'user',
+                        content: userPrompt,
+                    },
+                ],
+                response_format: { type: 'json_object' },
+            });
+
+            // console.log(completion.choices[0]?.message);
+
+            const data = JSON.parse(completion.choices[0]?.message?.content ?? "") as z.infer<typeof RenameResponseSchema>;
+
+            if (data) {
+                const finalArray: ProposedRenameResult[] = data.results.map((item) => {
+                    return {
+                        series: this.series,
+                        ...item
+                    };
+                });
+
+                return finalArray;
+            }
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
+
         return null;
     }
 
