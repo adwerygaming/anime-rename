@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-escape */
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 
 import moment from 'moment-timezone';
@@ -14,7 +13,7 @@ import tags, { afterGradient, beforeGradient, staleGradient } from './utils/Tags
 
 const directory = new DirectoryService();
 const jikanCache = new JikanCacheService();
-const lastAction = new LastAction()
+const lastAction = new LastAction();
 
 export type RenamingMethod = "jikan" | "ai" | "manual" | "exit";
 
@@ -158,7 +157,7 @@ async function promptSelectSeries(directory: DirectorySchema): Promise<SelectSer
     const series = Array.from(seriesMap.keys());
 
     const seriesChoiceMap = series.map(async (seriesName) => {
-        const isLastAccessed = await lastAction.getLastSeriesAccess(seriesName)
+        const isLastAccessed = await lastAction.getLastSeriesAccess(seriesName);
         const lastAccessFromNow = isLastAccessed ? moment(isLastAccessed.accessed_at).fromNow() : null;
 
         return {
