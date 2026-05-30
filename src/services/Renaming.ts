@@ -64,7 +64,6 @@ export class RenamingService {
     }
 
     async useJikan(): Promise<ProposedRenameResult[] | null> {
-        console.log(`[${tags.Jikan}] Searching for anime series "${this.series.name}" on Jikan API...`);
 
         let selectedAnime = null;
 
@@ -81,6 +80,7 @@ export class RenamingService {
                 return null;
             }
 
+            console.log(`[${tags.Jikan}] Searching for anime series "${this.series.name}" on Jikan API...`);
             await jikanCache.add(selectedAnime);
         }
 

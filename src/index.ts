@@ -1,17 +1,20 @@
 /* eslint-disable no-useless-escape */
 import { confirm, input, select, Separator } from '@inquirer/prompts';
 
+import moment from 'moment-timezone';
 import { z } from 'zod';
 import { ParsedAnime, readSeries } from './services/Anime.js';
 import { applyRenames } from './services/Changes.js';
 import { DirectorySchema, DirectoryService } from './services/database/Directory.js';
 import { JikanCacheService } from './services/database/JikanCache.js';
+import { LastAction } from './services/database/LastAction.js';
 import { checkPath } from './services/Directory.js';
 import { RenamingService } from './services/Renaming.js';
-import tags, { afterGradient, beforeGradient } from './utils/Tags.js';
+import tags, { afterGradient, beforeGradient, staleGradient } from './utils/Tags.js';
 
 const directory = new DirectoryService();
 const jikanCache = new JikanCacheService();
+const lastAction = new LastAction()
 
 export type RenamingMethod = "jikan" | "ai" | "manual" | "exit";
 
@@ -154,13 +157,18 @@ async function promptSelectSeries(directory: DirectorySchema): Promise<SelectSer
 
     const series = Array.from(seriesMap.keys());
 
-    const seriesChoices = series.map((seriesName) => {
+    const seriesChoiceMap = series.map(async (seriesName) => {
+        const isLastAccessed = await lastAction.getLastSeriesAccess(seriesName)
+        const lastAccessFromNow = isLastAccessed ? moment(isLastAccessed.accessed_at).fromNow() : null;
+
         return {
-            name: seriesName,
+            name: seriesName + (isLastAccessed ? ` ${staleGradient(`(last accessed)`)}` : ""),
             value: seriesName,
-            description: `${seriesMap.get(seriesName)?.length} episode(s)`
+            description: `${seriesMap.get(seriesName)?.length} episode(s)${lastAccessFromNow ? ` | Last Accessed: ${lastAccessFromNow}` : ""}`
         };
     });
+
+    const seriesChoices = await Promise.all(seriesChoiceMap);
 
     console.log();
     const selectedSeriesName = await select({
@@ -169,14 +177,15 @@ async function promptSelectSeries(directory: DirectorySchema): Promise<SelectSer
             ...seriesChoices,
             new Separator(),
             {
-                    name: "Clear existing cache",
+                    name: "Clear existing Jikan cache",
                     value: "clear_cache"
             },
             {
                 name: "Back to directory selection",
                 value: "exit"
             }
-        ]
+        ],
+        loop: false
     });
 
     if (selectedSeriesName == "clear_cache") {
@@ -200,7 +209,10 @@ async function promptSelectSeries(directory: DirectorySchema): Promise<SelectSer
     };
 }
 
-async function promptSelectMethod(): Promise<RenamingMethod> {
+async function promptSelectMethod(selectedSeries: SelectSeriesResult): Promise<RenamingMethod> {
+    const seriesName = selectedSeries.name;
+    await lastAction.setLastSeriesAccess(seriesName);
+
     const methodAnswer: RenamingMethod = await select({
         message: 'Select renaming method',
         choices: [
@@ -221,7 +233,8 @@ async function promptSelectMethod(): Promise<RenamingMethod> {
                 name: "Back to series selection",
                 value: "exit"
             }
-        ]
+        ],
+        loop: false
     });
 
     return methodAnswer;
@@ -261,7 +274,7 @@ while (true) {
         console.log(`[${tags.Info}] Directory: ${activeDirectory.path}`);
 
         const selectedSeries = await promptSelectSeries(activeDirectory);
-        const method: RenamingMethod = await promptSelectMethod();
+        const method: RenamingMethod = await promptSelectMethod(selectedSeries);
 
         if (method == "exit") {
             continue;

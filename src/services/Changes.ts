@@ -1,5 +1,5 @@
+import fs from 'node:fs';
 import { ApplyRenamesResult, ProposedRenameResult } from '../index.js';
-import { sleep } from '../utils/Sleep.js';
 import tags from "../utils/Tags.js";
 
 export async function applyRenames(renames: ProposedRenameResult[]): Promise<ApplyRenamesResult> {
@@ -9,8 +9,8 @@ export async function applyRenames(renames: ProposedRenameResult[]): Promise<App
     const startTime = Date.now();
     for (const renameItem of renames) {
         try {
-            await sleep(500);
-            // await fs.renameSync(renameItem.old.path, renameItem.new.path);
+            // await sleep(500);
+            await fs.renameSync(renameItem.old.path, renameItem.new.path);
             console.log(`[${tags.Job}] ${renameItem.old.name} -> ${renameItem.new.name}`);
             success++;
         } catch (e) {

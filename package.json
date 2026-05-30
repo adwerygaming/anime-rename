@@ -37,6 +37,7 @@
     "better-sqlite3": "^12.10.0",
     "dotenv": "^17.4.2",
     "gradient-string": "^3.0.0",
+    "moment-timezone": "^0.6.2",
     "openai": "^6.39.1",
     "quick.db": "^9.1.7",
     "zod": "^4.4.3"
