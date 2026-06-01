@@ -6,6 +6,7 @@ Extraction Rules:
 3. Extract the episode name if it exists in the filename (usually wrapped in dots, underscores, or dashes).
 4. FALLBACK: If there is no distinct episode name in the raw filename, you MUST replace {Episode Name} with "Episode X" where X is the parsed episode number (e.g., "Episode 01").
 5. Keep paths completely identical to the provided currentPath.
+6. Update the season numbers from the files to match the Season Number Provided before.
 
 CRITICAL OUTPUT RULES:
 You must output ONLY a valid JSON object matching the exact structure below. 

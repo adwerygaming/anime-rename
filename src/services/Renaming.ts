@@ -19,9 +19,11 @@ const systemPromptPath = path.join(process.cwd(), "src", "assets", "systemPrompt
 
 export class RenamingService {
     private readonly series: SelectSeriesResult;
+    private seasonNumber: number;
 
-    constructor(series: SelectSeriesResult) {
+    constructor(series: SelectSeriesResult, seasonNumber: number) {
         this.series = series;
+        this.seasonNumber = seasonNumber;
     }
 
     // used by useJikan()
@@ -124,7 +126,7 @@ export class RenamingService {
             console.log(`[${tags.Jikan}] [E${jikanEpNumber}] ${afterGradient(`${jikanEp.title}`)} -> ${afterGradient(`${matchedLocalFile.originalFile.name}`)}`);
 
             const episodeFormatted = matchedLocalFile.episode.toString().padStart(2, '0');
-            const seasonFormatted = matchedLocalFile.season.toString().padStart(2, '0');
+            const seasonFormatted = this.seasonNumber.toString().padStart(2, '0');
             const ext = path.extname(matchedLocalFile.originalFile.name);
 
             const newFilename = `${selectedAnime.title} - S${seasonFormatted}E${episodeFormatted} - ${jikanEp.title}${ext}`;
@@ -148,7 +150,7 @@ export class RenamingService {
             console.log(`[${tags.Jikan}] [E?] ${staleGradient(`No Jikan data matched`)} -> ${fileEp.originalFile.name}`);
 
             const episodeFormatted = fileEp.episode.toString().padStart(2, '0');
-            const seasonFormatted = fileEp.season.toString().padStart(2, '0');
+            const seasonFormatted = this.seasonNumber.toString().padStart(2, '0');
             const ext = path.extname(fileEp.originalFile.name);
 
             const newFilename = `${selectedAnime.title} - S${seasonFormatted}E${episodeFormatted} - Episode ${episodeFormatted}${ext}`;
@@ -189,7 +191,7 @@ export class RenamingService {
         const targetFormat = "{Anime Title} - S{SeasonNumber}E{EpisodeNumber} - {Episode Name}.{File Ext}";
 
         const systemPrompt = await this.loadAISystemPrompt();
-        const userPrompt = `Target Naming Format: ${targetFormat}\nCurrent Path: ${currentPath}\nRaw Filenames: ${JSON.stringify(rawFilenames)}`;
+        const userPrompt = `Target Naming Format: ${targetFormat}\nSeason Number: ${this.seasonNumber}\nCurrent Path: ${currentPath}\nRaw Filenames: ${JSON.stringify(rawFilenames)}`;
 
         try {
             const completion = await openai.chat.completions.create({

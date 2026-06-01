@@ -262,6 +262,15 @@ async function promptConfirmChanges(results: ProposedRenameResult[]): Promise<Ap
     return renameResults;
 }
 
+async function promptSeasonNumber(): Promise<number> {
+    const seasonNumberAnswer = await input({
+        message: 'What season is this? (Enter a number, e.g. 1, 2, 3, etc.)',
+        required: true,
+        default: "1",
+    });
+    return parseInt(seasonNumberAnswer);
+}
+
 
 // ===================================================================
 
@@ -274,12 +283,13 @@ while (true) {
 
         const selectedSeries = await promptSelectSeries(activeDirectory);
         const method: RenamingMethod = await promptSelectMethod(selectedSeries);
-
+        
         if (method == "exit") {
             continue;
         }
-
-        const renamingService = new RenamingService(selectedSeries);
+        
+        const seasonNumber = await promptSeasonNumber();
+        const renamingService = new RenamingService(selectedSeries, seasonNumber);
         let proposedRenameResult: ProposedRenameResult[] | null = null;
 
         if (method == "jikan") {
