@@ -6,7 +6,7 @@ import path from "node:path";
 import fs from 'node:fs';
 import { OpenAI } from "openai";
 import { z } from "zod";
-import { ProposedRenameResult, RenameResponseSchema, SelectSeriesResult } from "../index.js";
+import { ProposedRenameResult, RenameResponseAISchema, SelectSeriesResult } from "../index.js";
 import { env } from "../utils/EnvManager.js";
 import tags, { afterGradient, staleGradient } from "../utils/Tags.js";
 import { JikanCacheService } from "./database/JikanCache.js";
@@ -93,6 +93,7 @@ export class RenamingService {
         }
 
         const episodeResults = await jikanWrapper.getAnimeEpisodes(malId);
+        
         const episodes = episodeResults.data ?? [];
 
         const processedFiles = new Set<string>();
@@ -211,13 +212,30 @@ export class RenamingService {
 
             // console.log(completion.choices[0]?.message);
 
-            const data = JSON.parse(completion.choices[0]?.message?.content ?? "") as z.infer<typeof RenameResponseSchema>;
+            const data = JSON.parse(completion.choices[0]?.message?.content ?? "") as z.infer<typeof RenameResponseAISchema>;
 
             if (data) {
                 const finalArray: ProposedRenameResult[] = data.results.map((item) => {
+                    const originalFileObj = this.series.episodes.find(
+                        ep => ep.originalFile.name === item.original_filename
+                    );
+
+                    if (!originalFileObj) {
+                        throw new Error(`AI returned a filename that doesn't exist: ${item.original_filename}`);
+                    }
+
+                    const basePath = originalFileObj.originalFile.path;
+
                     return {
                         series: this.series,
-                        ...item
+                        old: {
+                            path: path.join(basePath, item.original_filename),
+                            name: item.original_filename
+                        },
+                        new: {
+                            path: path.join(basePath, item.new_filename),
+                            name: item.new_filename
+                        }
                     };
                 });
 

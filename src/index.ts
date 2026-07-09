@@ -37,17 +37,11 @@ export interface ProposedRenameResult {
 }
 
 const ProposedRenameResultSchema = z.object({
-  old: z.object({
-    path: z.string(),
-    name: z.string(),
-  }),
-  new: z.object({
-    path: z.string(),
-    name: z.string(),
-  }),
+    original_filename: z.string().describe("The original filename of the anime video file."),
+    new_filename: z.string().describe("The new filename of the anime video file, as proposed by the AI."),
 });
 
-export const RenameResponseSchema = z.object({
+export const RenameResponseAISchema = z.object({
   results: z.array(ProposedRenameResultSchema).describe("The array containing the mappings of old filenames to new filenames."),
 });
 

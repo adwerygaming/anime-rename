@@ -10,11 +10,13 @@ export async function applyRenames(renames: ProposedRenameResult[]): Promise<App
     for (const renameItem of renames) {
         try {
             // await sleep(500);
-            await fs.renameSync(renameItem.old.path, renameItem.new.path);
+            fs.renameSync(renameItem.old.path, renameItem.new.path);
             console.log(`[${tags.Job}] ${renameItem.old.name} -> ${renameItem.new.name}`);
+            console.log(`[${tags.Debug}] ${renameItem.old.path} -> ${renameItem.new.path}`);
             success++;
         } catch (e) {
             console.log(`[${tags.Error}] ${renameItem.old.name} -> ${renameItem.new.name}`);
+            console.log(`[${tags.Debug}] ${renameItem.old.path} -> ${renameItem.new.path}`);
             console.error(e);
             failed++;
         }
